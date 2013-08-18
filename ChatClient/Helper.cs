@@ -7,6 +7,9 @@ using System.Threading;
 
 namespace ChatClient
 {
+    /// <summary>
+    /// BLAH BLAH BLAH IMA NOOB!
+    /// </summary>
     internal static class Helper
     {
         public static readonly Random Randomizer = new Random();
