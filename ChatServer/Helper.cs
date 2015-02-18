@@ -135,30 +135,17 @@ namespace ChatServer
         }
         public const string NULL_LITERAL = "NULL";
         public const string NULL_EMAIL = "nothing@mail.dom";
-
-        public static IfStructReturn If(bool condition, Action ifTrue)
-        {
-            if (condition)
-                ifTrue();
-            return new IfStructReturn();
-        }
-        public static IfStructReturn ElseIf(this IfStructReturn structure, bool condition, Action ifTrue)
-        {
-            if (condition)
-                ifTrue();
-            return structure;
-        }
-        public struct IfStructReturn { }
     }
+
     public static class Extensions
     {
         public static void Send(this Socket sock, string msg)
         {
-            sock.Send(Server.enc.GetBytes(msg));
+            sock.Send(Server.enc.GetBytes(String.Concat(msg, "\n")));
         }
         public static void Send(this Socket sock, string msg, params object[] p)
         {
-            sock.Send(Server.enc.GetBytes(String.Format(msg, p)));
+            sock.Send(Server.enc.GetBytes(String.Format(String.Concat(msg, "\n"), p)));
         }
         public static async void FireAndForget(this Task task)
         {

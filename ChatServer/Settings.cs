@@ -11,7 +11,15 @@ namespace ChatServer
 
         public static Dictionary<string, dynamic> LoadSettings()
         {
-            var temp = new Dictionary<string, dynamic>(25);
+            Settings = new Dictionary<string, dynamic>(25);
+            if (!File.Exists("server.ini"))
+            {
+                using (var writer = File.CreateText("server.ini"))
+                {
+                    writer.WriteLine(Properties.Resource1.DefaultSettingsFileContent);
+                    writer.Flush();
+                }
+            }
             using (var reader = new StreamReader("server.ini"))
             {
                 string line = "";
@@ -20,15 +28,25 @@ namespace ChatServer
                     if ((line = line.Trim()) == string.Empty || line.StartsWith("##") || line.StartsWith("'")) continue;
                     var data = line.Split('=');
                     if (data[1].StartsWith("^pair("))
-                        temp.Add(data[0], ParsePair(data[1]));
+                        Settings.Add(data[0], ParsePair(data[1]));
                     else if (data[1].StartsWith("^tuple("))
-                        temp.Add(data[0], ParseTuple(data[1]));
+                        Settings.Add(data[0], ParseTuple(data[1]));
                     else
-                        temp.Add(data[0], ParseValue(data[1]));
+                        Settings.Add(data[0], ParseValue(data[1]));
                 }
             }
 
-            return temp;
+            return Settings;
+        }
+
+        static void AddSmart(string s1, string s2)
+        {
+            if (s2.StartsWith("^pair("))
+                Settings.Add(s1, s2);
+            else if (s2.StartsWith("^tuple("))
+                Settings.Add(s1, ParseTuple(s2));
+            else
+                Settings.Add(s1, ParseValue(s2));
         }
 
         static dynamic ParseValue(string value)
@@ -92,5 +110,7 @@ namespace ChatServer
 
             return Tuple.Create(item1, item2, item3);
         }
+
+        
     }
 }

@@ -38,10 +38,11 @@ namespace ChatServer
             this.Sender = sender;
         }
 
-        public string Header
+        public int Header
         {
-            get { return this._params[0]; }
+            get { return int.Parse(this._params[0]); }
         }
+
 
         public int ReadInt()
         {

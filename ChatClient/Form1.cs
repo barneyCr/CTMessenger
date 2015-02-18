@@ -74,5 +74,10 @@ namespace ChatClient
                 button1_Click(this, e);
             }
         }
+
+        private void unameBox_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

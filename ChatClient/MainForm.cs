@@ -118,7 +118,7 @@ namespace ChatClient
                 return;
             if (!text.StartsWith("/"))
                 helper.Send("32|{0}", text);
-            else
+            else if (text.Length>1)
             {
                 switch (text[1])
                 {
@@ -127,7 +127,7 @@ namespace ChatClient
                         helper.Send("35|" + data[1] + "|" + String.Join(" ", data.Skip(2).ToArray()));
                         break;
 
-                    case 'u':
+                    case 'o':
                         this.SystemMessage("\nUsers online:");
                         foreach (var user in Player.All.Values)
                             this.WriteLog(String.Format("{0} -> UserID: {1}", user.UserID, user.Username), Color.RoyalBlue);
@@ -136,6 +136,14 @@ namespace ChatClient
 
                     case 'c':
                         this.logBox.ResetText();
+                        break;
+
+                    case 'D':
+
+                        break;
+
+                    case 'u':
+                        helper.Send("41|" + text.Substring(3));
                         break;
                 }
             }

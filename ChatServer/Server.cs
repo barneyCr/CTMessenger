@@ -11,8 +11,8 @@ namespace ChatServer
 {
     class Server
     {
-        static AuthMethod AuthMethod { get; set; }
-        static string Password { get; set; }
+        public static AuthMethod AuthMethod { get; set; }
+        public static string Password { private get; set; }
 
         readonly TcpListener _listener;
         readonly IPAddress ip = IPAddress.Any;
@@ -48,9 +48,9 @@ namespace ChatServer
             {
                 _listener.Start();
                 Listen = true;
-                Program.Write(LogMessageType.Network, "Started listening");
+                Program.Write(LogMessageType.Network, "Started listening on port " + this.port);
             }
-            catch { Program.Write("There may be a guy listening on this port, we can't start our listener", "Network", ConsoleColor.Magenta); }
+            catch { Program.Write("There may be another server listening on this port, we can't start our TCP listener", "Network", ConsoleColor.Magenta); }
 
             while (Listen)
             {
@@ -173,28 +173,45 @@ namespace ChatServer
         {
             p.Seek(+1);
             var sender = p.Sender;
-            if (logPackets && p.Header != "32")
+            if (logPackets && p.Header != HeaderTypes.POST_MESSAGE)
                 Program.Write("Received packet of type " + GetHeaderType(p.Header) + ", from " + sender.Username + "[" + sender.UserID + "]", "PacketLogs", ConsoleColor.Blue);
 
-            if (p.Header == "32") // msg
+            if (p.Header == HeaderTypes.POST_MESSAGE) // msg
             {
                 sender.MessagesSent++;
                 string message = p.ReadString();
                 foreach (var user in Connections.Values)
-                    user.Send("34|{0}|{1}", sender.UserID ^ 0x121, message);
+                    user.Send(CreatePacket(HeaderTypes.NOTIFY_POST, sender.UserID ^ 0x121, message));
             }
-            else if (p.Header == "35") // whisper
+            else if (p.Header == HeaderTypes.SEND_WHISPER) // whisper
             {
                 string targetName = p.ReadString();
                 Client target = Connections.Values.FirstOrDefault(c => c.Username == targetName);
                 if (target != null)
                 {
                     string message = p.ReadString();
-                    target.Send(CreatePacket(37, sender.UserID, message)); // 37 = received whisper
-                    sender.Send(CreatePacket(38, target.UserID, message)); // 38 = sent whisper
+                    target.Send(CreatePacket(HeaderTypes.RECEIVE_WHISPER, sender.UserID, message)); // 37 = received whisper
+                    sender.Send(CreatePacket(HeaderTypes.SENT_WHISPER, target.UserID, message)); // 38 = sent whisper
                 }
                 else
-                    sender.Send(CreatePacket(-38));
+                {
+                    sender.Send(CreatePacket(HeaderTypes.WHISPER_ERROR));
+                }
+            }
+            else if (p.Header == HeaderTypes.CHANGE_USERNAME_REQUEST) // change Username request
+            {
+                string newUsername = p.ReadString();
+                if (Connections.Any(pair => pair.Value.Username == newUsername)) // there is someone with this username
+                {
+                    sender.Send(CreatePacket(HeaderTypes.CHANGE_USERNAME_DENIED));
+                }
+                else
+                {
+                    Program.Write(LogMessageType.UserEvent, "{0}[{1}] changed username to {2}", sender.Username, sender.UserID, newUsername);
+                    sender.Username = newUsername;
+                    foreach (var client in Connections.Values)
+                        client.Send(CreatePacket(HeaderTypes.CHANGE_USERNAME_ANNOUNCE, sender.UserID, sender.Username));
+                }
             }
         }
 
@@ -205,9 +222,9 @@ namespace ChatServer
             {
                 foreach (var user in this.Connections.Values)
                 {
-                    user.Send(CreatePacket(3, message));
+                    user.Send(CreatePacket(HeaderTypes.BROADCAST, message));
                 }
-                Program.Write("Message broadcasted to " + this.Connections.Count + " in " + watch.Elapsed.Milliseconds);
+                Program.Write("Message broadcasted to " + this.Connections.Count + " clients in " + watch.Elapsed.Milliseconds + " ms");
             }
             watch.Stop();
         }
@@ -216,11 +233,17 @@ namespace ChatServer
         {
             for (int i = 0; i < ids.Length; i++)
                 if (this.Connections.ContainsKey(ids[i]))
-                    this.Connections[ids[i]].Send(CreatePacket(4, message));
+                    this.Connections[ids[i]].Send(CreatePacket(HeaderTypes.SYSTEM_MESSAGE, message));
+        }
+
+        public static String GetHeaderType(int header)
+        {
+            return GetHeaderType(header.ToString());
         }
 
         public static String GetHeaderType(string header)
         {
+            
             switch (header)
             {
                 case "32":
@@ -253,6 +276,12 @@ namespace ChatServer
                     return "WHISPER_ERROR";
                 case "-1":
                     return "KICK";
+                case "41":
+                    return "CHANGE_USERNAME_REQUEST";
+                case "-41":
+                    return "CHANGE_USERNAME_DENIED";
+                case "42":
+                    return "CHANGE_USERNAME_ANNOUNCE";
                 default:
                     return "Unknown";
             }
@@ -276,7 +305,7 @@ namespace ChatServer
 
         private Client OnClientConnected(Socket newGuy, ref ConnectionFlags flag)
         {
-            switch (AuthMethod)
+            switch (Server.AuthMethod)
             {
                 case AuthMethod.UsernameOnly:
                     newGuy.Send(NameRequiredPacket);

@@ -26,6 +26,7 @@ namespace ChatClient
         public MainForm Form { private get; set; }
         private Thread listenThread;
         public bool Connected { get; private set; }
+        public bool Kicked { get; set; }
         public int Port { get; private set; }
         public string IP { get; private set; }
         public Socket Socket { get; set; }
@@ -57,11 +58,18 @@ namespace ChatClient
             {
                 if (!Receive(buff, ref bytes)) { break; }
 
-                using (var packet = new Packet(enc.GetString(buff, 0, bytes)))
-                    HandlePacket(packet);
+                Packet packet;
+                string[] packetArray = enc.GetString(buff, 0, bytes).Split('\n');
 
+                foreach (var pstr in packetArray)
+                {
+                    using (packet = new Packet(pstr))
+                    {
+                        HandlePacket(packet);
+                    }
+                }
             }
-            if (this.ConnectionLost != null)
+            if (this.ConnectionLost != null && Kicked == false)
                 this.ConnectionLost();
         }
 
@@ -69,12 +77,16 @@ namespace ChatClient
         {
             p.Seek(+1);
 
+            if (p.Header == "")
+            {
+                return;
+            }
             if (p.Header == "34") // msg
             {
                 int senderUID = p.ReadInt() ^ 0x121;
                 Form.WriteInChat(Player.All[senderUID].Username, senderUID, p.ReadString());
             }
-            else if (p.Header == "1")
+            else if (p.Header == "1") // INIT
             {
                 int myUid = this.UID = p.ReadInt();
                 string name = this.Username = p.ReadString();
@@ -101,7 +113,7 @@ namespace ChatClient
             }
             else if (p.Header == "4") // admin message, different from broadcasting because it can be sent to specific people only
             {
-                this.Form.WriteLog("Admin [69]:" + p.ReadString(), Color.Red);
+                this.Form.WriteLog("Admin [x]:" + p.ReadString(), Color.Red);
             }
             else if (p.Header == "12") // client disconnected
             {
@@ -115,7 +127,7 @@ namespace ChatClient
                 string message = p.ReadString();
                 this.Form.ReceivedWhisper(senderId, message);
             }
-            else if (p.Header == "38") // the whisper i wanted to send was sent
+            else if (p.Header == "38") // the whisper i wanted to send was sent (confirmation from server)
             {
                 this.Form.SentWhisper(p.ReadInt(), p.ReadString());
             }
@@ -123,13 +135,34 @@ namespace ChatClient
             {
                 this.Form.WriteLog("The user you are trying to reach is not online.", settings.SystemMessage);
             }
+            else if (p.Header == "42") // changed username
+            {
+                int uidOfChanger = p.ReadInt();
+                string newUsername = p.ReadString();
+                Player changer = Player.All[uidOfChanger];
+                if (changer.UserID == this.UID)
+                {
+                    this.Username = newUsername;
+                    Form.WriteLog("Success: changed username to " + newUsername, settings.SystemMessage);
+                }
+                else
+                {
+                    Form.WriteLog(changer.Username + "[" + changer.UserID + "] changed username to " + newUsername);
+                }
+                changer.Username = newUsername;
+            }
             else if (p.Header == "-1") // kicked !
             {
+                this.ConnectionLost = null; // do not reconnect
+                this.Kicked = false;
                 this.Form.WriteLog("You have been kicked from the server. Retry connecting in a few minutes.");
-                await Task.Delay(1200);
+                Thread.Sleep(5000);
                 Environment.Exit(-1);
             }
         }
+
+
+
         public bool Connect()
         {
             try

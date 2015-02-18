@@ -58,6 +58,7 @@ namespace ChatClient
         /// Returns the header of the packet
         /// </summary>
         /// <param name="packet"></param>
+        [Obsolete("The fuck is this")]
         public static string GetHeader(string packet)
         {
             if (packet.Contains("|08|")) // Account

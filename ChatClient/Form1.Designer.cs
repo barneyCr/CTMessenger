@@ -71,7 +71,8 @@
             this.unameBox.Name = "unameBox";
             this.unameBox.Size = new System.Drawing.Size(202, 20);
             this.unameBox.TabIndex = 2;
-            this.unameBox.Text = "Barney";
+            this.unameBox.Text = "user";
+            this.unameBox.TextChanged += new System.EventHandler(this.unameBox_TextChanged);
             this.unameBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Form1_KeyDown);
             // 
             // label3
