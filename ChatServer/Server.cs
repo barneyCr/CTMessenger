@@ -337,7 +337,7 @@ namespace ChatServer
                 }
                 else if (buffer[0] == 0x55 && AuthMethod == ChatServer.AuthMethod.Full)
                 {
-                    string[] data = enc.GetString(buffer, 1, bytesRead - 1).Split('|').Select(s => Helper.XorText(s, 0x55)).ToArray();
+                    string[] data = GetLoginPacketParams(buffer, bytesRead);
                     if (Server.Password == data[1])
                     {
                         flag = ConnectionFlags.OK;
@@ -349,6 +349,20 @@ namespace ChatServer
                         return null;
                     }
                 }
+                else if (buffer[0] == 0x65 && AuthMethod == ChatServer.AuthMethod.InviteCode)
+                {
+                    string[] data = GetLoginPacketParams(buffer, bytesRead);
+                    if (Program.InviteCodes.Contains(data[1]))
+                    {
+                        flag = ConnectionFlags.OK;
+                        return new Client(data[0], newGuy);
+                    }
+                    else
+                    {
+                        flag = ConnectionFlags.BadInviteCode;
+                        return null;
+                    }
+                }
             }
             else
             {
@@ -357,6 +371,12 @@ namespace ChatServer
             }
 
             return null;
+        }
+
+        private static string[] GetLoginPacketParams(byte[] buffer, int bytesRead)
+        {
+            string[] data = enc.GetString(buffer, 1, bytesRead - 1).Split('|').Select(s => Helper.XorText(s, buffer[0])).ToArray();
+            return data;
         }
 
         static Client OnConnectionError(ref ConnectionFlags flag)
@@ -395,7 +415,8 @@ namespace ChatServer
             Banned,
             BadFirstPacket,
             SocketError,
-            BadPassword
+            BadPassword,
+            BadInviteCode
         }
     }
 }

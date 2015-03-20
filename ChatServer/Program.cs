@@ -1,5 +1,6 @@
 ﻿using ChatServer.Properties;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -9,8 +10,10 @@ namespace ChatServer
 {
     partial class Program
     {
-        public static readonly string[] ReservedNames = new[] { "admin", "system", "server" };
+        public static readonly string[] ReservedNames = new[] { "admin", "system", "server", "TODEA" };
         public static readonly string SERVER_INI_PATH = Environment.CurrentDirectory + @"\server.ini";
+
+        public static List<string> InviteCodes = new List<string>(500);
 
         const ConsoleColor DefaultColor = ConsoleColor.DarkGray;
         const int VARIOUS_JOB_TIMER_TICK = 1200;
@@ -76,6 +79,7 @@ namespace ChatServer
             {
                 var watch = Stopwatch.StartNew();
                 Settings = Program.LoadSettings();
+                LoadInvitesCodes(false);
                 WriteInLogFile = Settings["writeInFile"];
                 InitializeConsole();
 
@@ -247,6 +251,29 @@ namespace ChatServer
             }
         }
 
+        private static void LoadInvitesCodes(bool force)
+        {
+            InviteCodes = new List<string>(Settings["maxClients"]);
+            if (force == true || Parse<AuthMethod>(Settings["authMethod"]) == AuthMethod.InviteCode)
+            {
+                try
+                {
+                    using (StreamReader reader = new StreamReader("invites.txt"))
+                    {
+                        string line;
+                        while (string.IsNullOrWhiteSpace(line = reader.ReadLine()) == false)
+                        {
+                            Program.InviteCodes.Add(line);
+                        }
+                    }
+                }
+                catch (FileNotFoundException)
+                {
+                    Write(LogMessageType.Config, "Warning: no invite code file (create invites.txt)");
+                }
+            }
+        }
+
         static void VariousJobTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             lock (Settings)
@@ -287,6 +314,7 @@ namespace ChatServer
             Console.Clear();
             Program.Write(LogMessageType.Config, "Settings loaded");
         }
+
 
         static string GetEnum<T>(T _enum) where T : struct
         {
