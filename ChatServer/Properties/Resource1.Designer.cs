@@ -61,7 +61,7 @@ namespace ChatServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to writeInFile=true
+        ///   Looks up a localized string similar to writeInFile=true 
         ///serverPort=15432
         ///maxClients=10
         ///authMethod=UsernameOnly
@@ -72,7 +72,8 @@ namespace ChatServer.Properties {
         ///svOwner=Cristian
         ///svName=Server_v1
         ///defaultBanTime=120
-        ///svWelcomeMsg=Welcome_msg.
+        ///svWelcomeMsg=Welcome_msg
+        ///.
         /// </summary>
         internal static string DefaultSettingsFileContent {
             get {

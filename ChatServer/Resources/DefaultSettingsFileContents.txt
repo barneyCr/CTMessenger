@@ -1,0 +1,14 @@
+writeInFile=true 
+serverPort=15432
+maxClients=10
+authMethod=UsernameOnly
+passKey=x
+consoleBackColor=White
+logPackets=true
+acceptServerSockets=true
+svOwner=Cristian
+svName=Server_v1
+defaultBanTime=120
+svWelcomeMsg=Welcome_msg
+reportsBevoidTime=20
+reportMajorityPercent=50

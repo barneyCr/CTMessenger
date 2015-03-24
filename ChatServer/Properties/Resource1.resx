@@ -117,19 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="DefaultSettingsFileContent" xml:space="preserve">
-    <value>writeInFile=true
-serverPort=15432
-maxClients=10
-authMethod=UsernameOnly
-passKey=x
-consoleBackColor=White
-logPackets=true
-acceptServerSockets=true
-svOwner=Cristian
-svName=Server_v1
-defaultBanTime=120
-svWelcomeMsg=Welcome_msg</value>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="DefaultSettingsFileContent" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\DefaultSettingsFileContents.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
   </data>
   <data name="String1" xml:space="preserve">
     <value />

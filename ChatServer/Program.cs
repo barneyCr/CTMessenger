@@ -67,6 +67,10 @@ namespace ChatServer
                     Write(msg, head);
                     break;
 
+                case LogMessageType.ReportFromUser:
+                    Write(msg, "REPORT", ConsoleColor.DarkRed);
+                    break;
+
                 default:
                     Write(msg);
                     break;
@@ -148,13 +152,9 @@ namespace ChatServer
                                 string[] params_ = line.Split(' ');
                                 
                                 Client client = server.Connections[params_[1].ToInt()];
-                                var endpoint = client.Socket.RemoteEndPoint.ToString().Split(':')[0];
+                                string endpoint = client.Socket.RemoteEndPoint.ToString().Split(':')[0];
 
-                                server.Broadcast(String.Format("{0} [{1}] has been kicked from the server!", client.Username, client.UserID));
-                                server.Blacklist.Add(endpoint);
-                                client.Send("-1");
-
-                                Server.OnError(client);
+                                Kick(client, endpoint);
                                 RemoveBlacklist(endpoint, (params_.Length == 2) ? Settings["defaultBanTime"] : params_[2].ToInt());
                             }
                             else if (line[0] == 'e')
@@ -251,6 +251,15 @@ namespace ChatServer
             }
         }
 
+        public static void Kick(Client client, string endpoint)
+        {
+            server.Broadcast(String.Format("{0} [{1}] has been kicked from the server!", client.Username, client.UserID));
+            server.Blacklist.Add(endpoint);
+            client.Send("-1");
+
+            Server.OnError(client);
+        }
+
         private static void LoadInvitesCodes(bool force)
         {
             InviteCodes = new List<string>(Settings["maxClients"]);
@@ -294,7 +303,7 @@ namespace ChatServer
         static System.Timers.Timer VariousJobTimer = new System.Timers.Timer(VARIOUS_JOB_TIMER_TICK);
 
 
-        static async void RemoveBlacklist(string p, int delay)
+        public static async void RemoveBlacklist(string p, int delay)
         {
             await Task.Delay(delay*1000);
             server.Blacklist.Remove(p);

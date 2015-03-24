@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -31,6 +32,13 @@ namespace ChatServer
         public string Username { get; set; }
         public int UserID { get; set; }
 
+        public Dictionary<int, DateTime> Reports { get; set; }
+
+        public string GetEndpoint()
+        {
+            return this.Socket.RemoteEndPoint.ToString().Split(':')[0];
+        }
+
         /// <summary>
         /// Returns a new instance of the Client class, and generates a UID between 70 and 500000
         /// </summary>
@@ -41,6 +49,7 @@ namespace ChatServer
             this.Username = name;
             this.Socket = socket;
             this.UserID = Helper.Randomizer.Next(70, 500000);
+            this.Reports = new Dictionary<int, DateTime>();
         }
     }
 }

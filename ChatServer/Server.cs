@@ -213,6 +213,45 @@ namespace ChatServer
                         client.Send(CreatePacket(HeaderTypes.CHANGE_USERNAME_ANNOUNCE, sender.UserID, sender.Username));
                 }
             }
+            else if (p.Header == HeaderTypes.REPORT_USER)
+            {
+                int reportedUserID = p.ReadInt();
+                string reason = p.ReadString();
+                Client reportedClient;
+                bool valid = true;
+                if (Connections.TryGetValue(reportedUserID, out reportedClient))
+                {
+                    if (reportedClient.Reports.ContainsKey(sender.UserID)) // reported before by same user
+                    {
+                        DateTime lastReportFromSender = reportedClient.Reports[sender.UserID];
+                        if ((DateTime.Now - lastReportFromSender) > TimeSpan.FromMinutes(5)) // 5 mins passed
+                        {
+                            valid = true;
+                            reportedClient.Reports[sender.UserID] = DateTime.Now;
+                        }
+                        else valid = false;
+                    }
+                    if (valid)
+                    {
+                        Program.Write(
+                            LogMessageType.ReportFromUser,
+                            "User {0} was reported by {1} for the following reason: \n\t\"{2}\"",
+                            reportedClient.Username, sender.Username, reason);
+
+                        if (Program.Settings["autoban"]==true)
+                        {
+                            int reportsBevoidTime = Program.Settings["reportsBevoidTime"];
+                            int reportMajority = Program.Settings["reportMajorityPercent"];
+                            int validReports=reportedClient.Reports.Count(pair => (pair.Value.AddMinutes(reportsBevoidTime) > DateTime.Now));
+                            if (validReports/Connections.Count * 100 > reportMajority)
+                            {
+                                Program.Kick(reportedClient, reportedClient.GetEndpoint());
+                                Program.RemoveBlacklist(reportedClient.GetEndpoint(), reportsBevoidTime * 60 / 2);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         public void Broadcast(string message)

@@ -14,7 +14,8 @@
         Chat,
         Auth,
         UserEvent,
-        Packet
+        Packet,
+        ReportFromUser
     }
 
     static class HeaderTypes
@@ -36,5 +37,6 @@
         public const int CHANGE_USERNAME_REQUEST = 41;
         public const int CHANGE_USERNAME_DENIED = -41;
         public const int CHANGE_USERNAME_ANNOUNCE = 42;
+        public const int REPORT_USER = 43;
     }
 }
