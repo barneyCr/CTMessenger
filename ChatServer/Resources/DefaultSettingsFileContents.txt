@@ -10,5 +10,7 @@ svOwner=Cristian
 svName=Server_v1
 defaultBanTime=120
 svWelcomeMsg=Welcome_msg
+
+autoban=true
 reportsBevoidTime=20
 reportMajorityPercent=50

@@ -156,11 +156,10 @@ namespace ChatClient
                 this.ConnectionLost = null; // do not reconnect
                 this.Kicked = false;
                 this.Form.WriteLog("You have been kicked from the server. Retry connecting in a few minutes.");
-                Thread.Sleep(5000);
+                await Task.Delay(5000);
                 Environment.Exit(-1);
             }
         }
-
 
 
         public bool Connect()

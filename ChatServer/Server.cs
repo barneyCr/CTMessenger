@@ -218,10 +218,10 @@ namespace ChatServer
                 int reportedUserID = p.ReadInt();
                 string reason = p.ReadString();
                 Client reportedClient;
-                bool valid = true;
+                bool valid = true, before=false;
                 if (Connections.TryGetValue(reportedUserID, out reportedClient))
                 {
-                    if (reportedClient.Reports.ContainsKey(sender.UserID)) // reported before by same user
+                    if (before=(reportedClient.Reports.ContainsKey(sender.UserID))) // reported before by same user
                     {
                         DateTime lastReportFromSender = reportedClient.Reports[sender.UserID];
                         if ((DateTime.Now - lastReportFromSender) > TimeSpan.FromMinutes(5)) // 5 mins passed
@@ -233,20 +233,26 @@ namespace ChatServer
                     }
                     if (valid)
                     {
+                        if (!before)
+                        {
+                            reportedClient.Reports.Add(sender.UserID, DateTime.Now);
+                        }
                         Program.Write(
-                            LogMessageType.ReportFromUser,
-                            "User {0} was reported by {1} for the following reason: \n\t\"{2}\"",
-                            reportedClient.Username, sender.Username, reason);
+                                LogMessageType.ReportFromUser,
+                                "User {0} was reported by {1} for the following reason: \n\t\"{2}\"",
+                                reportedClient.Username, sender.Username, reason);
+                        AdminMessage("Report successful, thank you", new[]{sender.UserID});
 
                         if (Program.Settings["autoban"]==true)
                         {
                             int reportsBevoidTime = Program.Settings["reportsBevoidTime"];
                             int reportMajority = Program.Settings["reportMajorityPercent"];
                             int validReports=reportedClient.Reports.Count(pair => (pair.Value.AddMinutes(reportsBevoidTime) > DateTime.Now));
-                            if (validReports/Connections.Count * 100 > reportMajority)
+                            if ((double)validReports / Connections.Count * 100 > reportMajority)
                             {
-                                Program.Kick(reportedClient, reportedClient.GetEndpoint());
-                                Program.RemoveBlacklist(reportedClient.GetEndpoint(), reportsBevoidTime * 60 / 2);
+                                string endpoint = reportedClient.GetEndpoint();
+                                Program.Kick(reportedClient, endpoint);
+                                Program.RemoveBlacklist(endpoint, reportsBevoidTime * 60 / 2);
                             }
                         }
                     }

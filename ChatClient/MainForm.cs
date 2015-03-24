@@ -145,6 +145,13 @@ namespace ChatClient
                     case 'u':
                         helper.Send("41|" + text.Substring(3));
                         break;
+
+                    case 'r':
+                        string id = new string(text.Substring(3).TakeWhile(c => c != ' ').ToArray());
+                        string reason = new string(text.Skip(4 + id.Length).ToArray());
+                        helper.Send("43|{0}|{1}", id, reason);
+                        break;
+
                 }
             }
             this.inputBx.ResetText();
