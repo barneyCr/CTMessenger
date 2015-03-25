@@ -16,7 +16,7 @@ namespace ChatServer
             {
                 using (var writer = File.CreateText("server.ini"))
                 {
-                    writer.WriteLine(Properties.Resource1.DefaultSettingsFileContent);
+                    writer.WriteLine(Properties.Resources.DefaultSettingsFileContents);
                     writer.Flush();
                 }
             }

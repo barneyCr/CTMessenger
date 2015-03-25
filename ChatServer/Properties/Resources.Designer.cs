@@ -22,14 +22,14 @@ namespace ChatServer.Properties {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Resource1 {
+    internal class Resources {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Resource1() {
+        internal Resources() {
         }
         
         /// <summary>
@@ -39,7 +39,7 @@ namespace ChatServer.Properties {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("ChatServer.Properties.Resource1", typeof(Resource1).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("ChatServer.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,11 +61,37 @@ namespace ChatServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to writeInFile=true 
+        ///serverPort=15432
+        ///maxClients=10
+        ///authMethod=UsernameOnly
+        ///passKey=x
+        ///consoleBackColor=White
+        ///logPackets=true
+        ///acceptServerSockets=true
+        ///svOwner=Cristian
+        ///svName=Server_v1
+        ///defaultBanTime=120
+        ///svWelcomeMsg=Welcome_msg
+        ///
+        ///autoban=true
+        ///reportsBevoidTime=20
+        ///reportMajorityPercent=50
+        ///.
         /// </summary>
-        internal static string String1 {
+        internal static string DefaultSettingsFileContents {
             get {
-                return ResourceManager.GetString("String1", resourceCulture);
+                return ResourceManager.GetString("DefaultSettingsFileContents", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] icgen {
+            get {
+                object obj = ResourceManager.GetObject("icgen", resourceCulture);
+                return ((byte[])(obj));
             }
         }
     }

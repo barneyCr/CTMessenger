@@ -235,7 +235,7 @@ namespace ChatServer
                     File.Delete("server.ini");
                     using (var writer = File.CreateText(Environment.CurrentDirectory + @"\server.ini"))
                     {
-                        writer.WriteLine(Resource1.DefaultSettingsFileContent);
+                        writer.WriteLine(Resources.DefaultSettingsFileContents);
                         writer.Flush();
                     }
                     Console.WriteLine("Created new server.ini... restart application");
@@ -247,7 +247,8 @@ namespace ChatServer
             {
                 server = null;
                 writer.Dispose();
-                    VariousJobTimer.Dispose();
+                File.WriteAllLines("invites.txt", InviteCodes);
+                VariousJobTimer.Dispose();
             }
         }
 
@@ -279,6 +280,51 @@ namespace ChatServer
                 catch (FileNotFoundException)
                 {
                     Write(LogMessageType.Config, "Warning: no invite code file (create invites.txt)");
+                    Write(LogMessageType.Config, "Create new file? <yes/no>");
+                    if (Console.ReadLine().ToLower() == "yes")
+                    {
+                        string[] args = new string[5];
+                        Console.Write("Number of codes: ");
+                        args[0] = Console.ReadLine();
+                        Console.Write("Char group number: ");
+                        args[1] = Console.ReadLine();
+                        Console.Write("Chars/group: ");
+                        args[2] = Console.ReadLine();
+                        Console.Write("Open file after? <yes/no>:");
+                        args[3] = Console.ReadLine();
+                        args[4] = "invites.txt";
+
+                        if (!File.Exists("icgen.exe"))
+                        {
+                            int len = Resources.icgen.Length;
+                            using (var stream = File.Create("icgen.exe", len))
+                            {
+                                stream.Write(Resources.icgen, 0, len);
+                            }
+                        }
+                        using (var generatorProcess = Process.Start("icgen.exe", String.Join(" ", args)))
+                        {
+                            generatorProcess.WaitForExit();
+                            if (generatorProcess.ExitCode == -2)
+                            {
+                                Write(LogMessageType.Config, "Could not generate invite codes, reason unknown.");
+                            }
+                            else
+                            {
+                                switch(generatorProcess.ExitCode)
+                                {
+                                    case -1:
+                                        Write(LogMessageType.Config, "Wrong format for parameters, retrying process"); break;
+                                    case 0:
+                                        Write(LogMessageType.Config, "Codes generated! Restarting the server..."); break;
+                                    default:
+                                        Write("Unknown exit code for icgen.exe", "ERROR", ConsoleColor.DarkRed); break;
+                                }
+
+                                LoadInvitesCodes(force);
+                            }
+                        }
+                    }
                 }
             }
         }

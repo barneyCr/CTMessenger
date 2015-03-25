@@ -215,45 +215,50 @@ namespace ChatServer
             }
             else if (p.Header == HeaderTypes.REPORT_USER)
             {
-                int reportedUserID = p.ReadInt();
-                string reason = p.ReadString();
-                Client reportedClient;
-                bool valid = true, before=false;
-                if (Connections.TryGetValue(reportedUserID, out reportedClient))
-                {
-                    if (before=(reportedClient.Reports.ContainsKey(sender.UserID))) // reported before by same user
-                    {
-                        DateTime lastReportFromSender = reportedClient.Reports[sender.UserID];
-                        if ((DateTime.Now - lastReportFromSender) > TimeSpan.FromMinutes(5)) // 5 mins passed
-                        {
-                            valid = true;
-                            reportedClient.Reports[sender.UserID] = DateTime.Now;
-                        }
-                        else valid = false;
-                    }
-                    if (valid)
-                    {
-                        if (!before)
-                        {
-                            reportedClient.Reports.Add(sender.UserID, DateTime.Now);
-                        }
-                        Program.Write(
-                                LogMessageType.ReportFromUser,
-                                "User {0} was reported by {1} for the following reason: \n\t\"{2}\"",
-                                reportedClient.Username, sender.Username, reason);
-                        AdminMessage("Report successful, thank you", new[]{sender.UserID});
+                HandleReportPacket(p, sender);
+            }
+        }
 
-                        if (Program.Settings["autoban"]==true)
+        private void HandleReportPacket(Packet p, Client sender)
+        {
+            int reportedUserID = p.ReadInt();
+            string reason = p.ReadString();
+            Client reportedClient;
+            bool valid = true, before = false;
+            if (Connections.TryGetValue(reportedUserID, out reportedClient)) // reportedClient exists
+            {
+                if (before = (reportedClient.Reports.ContainsKey(sender.UserID))) // reported before by same user
+                {
+                    DateTime lastReportFromSender = reportedClient.Reports[sender.UserID];
+                    if ((DateTime.Now - lastReportFromSender) > TimeSpan.FromMinutes(5)) // 5 mins passed
+                    {
+                        valid = true;
+                        reportedClient.Reports[sender.UserID] = DateTime.Now;
+                    }
+                    else valid = false;
+                }
+                if (valid)
+                {
+                    if (!before)
+                    {
+                        reportedClient.Reports.Add(sender.UserID, DateTime.Now);
+                    }
+                    Program.Write(
+                            LogMessageType.ReportFromUser,
+                            "User {0} was reported by {1} for the following reason: \n\t\"{2}\"",
+                            reportedClient.Username, sender.Username, reason);
+                    AdminMessage("Report successful, thank you", new[] { sender.UserID });
+
+                    if (Program.Settings["autoban"] == true)
+                    {
+                        int reportsBevoidTime = Program.Settings["reportsBevoidTime"];
+                        int reportMajority = Program.Settings["reportMajorityPercent"];
+                        int validReports = reportedClient.Reports.Count(pair => (pair.Value.AddMinutes(reportsBevoidTime) > DateTime.Now));
+                        if ((double)validReports / Connections.Count * 100 > reportMajority)
                         {
-                            int reportsBevoidTime = Program.Settings["reportsBevoidTime"];
-                            int reportMajority = Program.Settings["reportMajorityPercent"];
-                            int validReports=reportedClient.Reports.Count(pair => (pair.Value.AddMinutes(reportsBevoidTime) > DateTime.Now));
-                            if ((double)validReports / Connections.Count * 100 > reportMajority)
-                            {
-                                string endpoint = reportedClient.GetEndpoint();
-                                Program.Kick(reportedClient, endpoint);
-                                Program.RemoveBlacklist(endpoint, reportsBevoidTime * 60 / 2);
-                            }
+                            string endpoint = reportedClient.GetEndpoint();
+                            Program.Kick(reportedClient, endpoint);
+                            Program.RemoveBlacklist(endpoint, reportsBevoidTime * 60 / 2);
                         }
                     }
                 }
@@ -363,7 +368,7 @@ namespace ChatServer
                     throw new NotImplementedException();
             }
 
-            byte[] buffer = new byte[64];
+            byte[] buffer = new byte[128];
             int bytesRead = 0;
 
             if (!Receive(newGuy, buffer, ref bytesRead))
@@ -397,15 +402,19 @@ namespace ChatServer
                 else if (buffer[0] == 0x65 && AuthMethod == ChatServer.AuthMethod.InviteCode)
                 {
                     string[] data = GetLoginPacketParams(buffer, bytesRead);
-                    if (Program.InviteCodes.Contains(data[1]))
+                    lock (Program.InviteCodes)
                     {
-                        flag = ConnectionFlags.OK;
-                        return new Client(data[0], newGuy);
-                    }
-                    else
-                    {
-                        flag = ConnectionFlags.BadInviteCode;
-                        return null;
+                        if (Program.InviteCodes.Contains(data[1]))
+                        {
+                            Program.InviteCodes.Remove(data[1]); // remove the invite code from the list
+                            flag = ConnectionFlags.OK;
+                            return new Client(data[0], newGuy);
+                        }
+                        else
+                        {
+                            flag = ConnectionFlags.BadInviteCode;
+                            return null;
+                        }
                     }
                 }
             }
@@ -435,6 +444,7 @@ namespace ChatServer
             try
             {
                 bytesRead = socket.Receive(buffer, SocketFlags.None);
+                // todo maybe increase buffer here dynamically
                 if (bytesRead == 0) throw new SocketException();
                 return true;
             }
