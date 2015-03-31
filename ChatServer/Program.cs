@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ChatServer
@@ -16,7 +17,7 @@ namespace ChatServer
         public static List<string> InviteCodes = new List<string>(500);
 
         const ConsoleColor DefaultColor = ConsoleColor.DarkGray;
-        const int VARIOUS_JOB_TIMER_TICK = 1200;
+        const int VARIOUS_JOB_TIMER_TICK = 1000;
         static Server server;
         static bool WriteInLogFile;
         static bool firstEditOfSettings = true;
@@ -77,8 +78,14 @@ namespace ChatServer
             }
         }
 
+        [STAThread]
         static void Main(string[] args)
         {
+            if (args.Length > 0)
+            {
+                if (args[0] == "-wait")
+                    Thread.Sleep(int.Parse(args[1]));
+            }
             try
             {
                 var watch = Stopwatch.StartNew();
@@ -140,65 +147,68 @@ namespace ChatServer
                             Console.Clear();
                         else if (line.Length > 2)
                         {
-                            if (line[0] == 'b')
-                                server.Broadcast(line.Substring(2));
-                            else if (line[0] == 'a')
+                            if (line[1] == ' ')
                             {
-                                int[] uids = new String(line.Substring(2).TakeWhile(c => c != ' ' && c!='^').ToArray()).Split(',').Select(s => int.Parse(s)).ToArray();
-                                server.AdminMessage(line.Substring(line.IndexOf('^') + 1), uids);
-                            }
-                            else if (line[0] == 'k')
-                            {
-                                string[] params_ = line.Split(' ');
-                                
-                                Client client = server.Connections[params_[1].ToInt()];
-                                string endpoint = client.Socket.RemoteEndPoint.ToString().Split(':')[0];
-
-                                Kick(client, endpoint);
-                                RemoveBlacklist(endpoint, (params_.Length == 2) ? Settings["defaultBanTime"] : params_[2].ToInt());
-                            }
-                            else if (line[0] == 'e')
-                            {
-                                string[] data = line.Substring(2).Split('=');
-                                lock (Settings)
+                                if (line[0] == 'b')
+                                    server.Broadcast(line.Substring(2));
+                                else if (line[0] == 'a')
                                 {
-                                    if (Settings.ContainsKey(data[0]))
+                                    int[] uids = new String(line.Substring(2).TakeWhile(c => c != ' ' && c != '^').ToArray()).Split(',').Select(s => int.Parse(s)).ToArray();
+                                    server.AdminMessage(line.Substring(line.IndexOf('^') + 1), uids);
+                                }
+                                else if (line[0] == 'k')
+                                {
+                                    string[] params_ = line.Split(' ');
+
+                                    Client client = server.Connections[params_[1].ToInt()];
+                                    string endpoint = client.Socket.RemoteEndPoint.ToString().Split(':')[0];
+
+                                    Kick(client, endpoint);
+                                    RemoveBlacklist(endpoint, (params_.Length == 2) ? Settings["defaultBanTime"] : params_[2].ToInt());
+                                }
+                                else if (line[0] == 'e')
+                                {
+                                    string[] data = line.Substring(2).Split('=');
+                                    lock (Settings)
                                     {
-                                        try
+                                        if (Settings.ContainsKey(data[0]))
                                         {
-                                            dynamic oldVal = Settings[data[0]];
-                                            //if (oldVal.GetType() == data[1].GetType())
-                                            Console.WriteLine(">>\tChanged: {0}\t=\t{1}", data[0], Settings[data[0]] = data[1]);
-                                            //else
-                                            //    throw new ArgumentException("Wrong data type for " + data[0]);
-                                            if (firstEditOfSettings)
+                                            try
                                             {
-                                                Write("Changing settings is unsafe: no type check!", "Warning", ConsoleColor.Red);
-                                                firstEditOfSettings = false;
+                                                dynamic oldVal = Settings[data[0]];
+                                                //if (oldVal.GetType() == data[1].GetType())
+                                                Console.WriteLine(">>\tChanged: {0}\t=\t{1}", data[0], Settings[data[0]] = data[1]);
+                                                //else
+                                                //    throw new ArgumentException("Wrong data type for " + data[0]);
+                                                if (firstEditOfSettings)
+                                                {
+                                                    Write("Changing settings is unsafe: no type check!", "Warning", ConsoleColor.Red);
+                                                    firstEditOfSettings = false;
+                                                }
                                             }
-                                        }
-                                        catch (IndexOutOfRangeException)
-                                        {
-                                            Console.WriteLine("Wrong syntax for E (edit) command");
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine("No such key... add in session memory?");
-                                        if (Console.ReadLine() == "1")
-                                        {
-                                            lock (Settings)
+                                            catch (IndexOutOfRangeException)
                                             {
-                                                AddSmart(data[0], data[1]);
-                                                Console.WriteLine("Added {0} = {1}", data[0], data[1]);
+                                                Console.WriteLine("Wrong syntax for E (edit) command");
                                             }
                                         }
                                         else
-                                            Console.WriteLine("Dismissed");
+                                        {
+                                            Console.WriteLine("No such key... add in session memory?");
+                                            if (Console.ReadLine() == "1")
+                                            {
+                                                lock (Settings)
+                                                {
+                                                    AddSmart(data[0], data[1]);
+                                                    Console.WriteLine("Added {0} = {1}", data[0], data[1]);
+                                                }
+                                            }
+                                            else
+                                                Console.WriteLine("Dismissed");
+                                        }
                                     }
                                 }
                             }
-                            else if (line.StartsWith("udata"))
+                            if (line.StartsWith("udata"))
                             {
                                 string input = line.Substring(6);
 
@@ -219,10 +229,58 @@ namespace ChatServer
                                         Write("No client with Username: " + input);
                                 }
                             }
+                            else if (line.StartsWith("restart"))
+                            {
+                                int delay = 0;
+                                if (line.Length > 7)
+                                {
+                                    delay = int.Parse(line.Substring(8));
+                                }
+                                Write(String.Format("Restarting in {0}...", delay), "Application", ConsoleColor.Blue);
+                                Thread.Sleep(delay);
+                                Process.Start("ChatServer.exe", "-wait 1000");
+                                return;
+                            }
+                            else if (line == "add ic")
+                            {
+                                Console.Write("Expecting invite code: ");
+                                string code;
+                                InviteCodes.Add(code = Console.ReadLine());
+                                Write(LogMessageType.Config, "Added invite code " + code);
+                            }
+                            else if (line.StartsWith("pop ic"))
+                            {
+                                string code;
+                                lock (InviteCodes)
+                                {
+                                    if (InviteCodes.Count != 0)
+                                    {
+                                        code = InviteCodes.First();
+                                    }
+                                    else
+                                    {
+                                        code = Helper.GenerateRandomString(6);
+                                        InviteCodes.Add(code);
+                                    }
+                                }
+                                Console.Write(code);
+
+                                if ((line.Length > 7 && line.Substring(7) == "-nc"))
+                                {
+                                    Console.WriteLine();
+                                }
+                                else
+                                {
+                                    Thread.Sleep(100);
+                                    System.Windows.Forms.Clipboard.SetText(code);
+                                    Console.WriteLine(" -> copied");
+                                }
+                            }
                         }
                     }
-                    
-                    catch(Exception e) {
+
+                    catch (Exception e)
+                    {
                         Console.WriteLine(e.Message);
                     }
                 }
@@ -247,8 +305,8 @@ namespace ChatServer
             {
                 server = null;
                 writer.Dispose();
-                File.WriteAllLines("invites.txt", InviteCodes);
                 VariousJobTimer.Dispose();
+                Environment.Exit(0);
             }
         }
 
@@ -281,19 +339,26 @@ namespace ChatServer
                 {
                     Write(LogMessageType.Config, "Warning: no invite code file (create invites.txt)");
                     Write(LogMessageType.Config, "Create new file? <yes/no>");
-                    if (Console.ReadLine().ToLower() == "yes")
+                    string ans = Console.ReadLine().ToLower();
+                    if (ans == "yes" || ans == "def")
                     {
                         string[] args = new string[5];
-                        Console.Write("Number of codes: ");
-                        args[0] = Console.ReadLine();
-                        Console.Write("Char group number: ");
-                        args[1] = Console.ReadLine();
-                        Console.Write("Chars/group: ");
-                        args[2] = Console.ReadLine();
-                        Console.Write("Open file after? <yes/no>:");
-                        args[3] = Console.ReadLine();
-                        args[4] = "invites.txt";
-
+                        if (ans == "def")
+                        {
+                            args = new[] { "100", "5", "6", "no", "invites.txt" };
+                        }
+                        else
+                        {
+                            Console.Write("Number of codes: ");
+                            args[0] = Console.ReadLine();
+                            Console.Write("Grouping number: ");
+                            args[1] = Console.ReadLine();
+                            Console.Write("Chars/group: ");
+                            args[2] = Console.ReadLine();
+                            Console.Write("Open file after? <yes/no>:");
+                            args[3] = Console.ReadLine();
+                            args[4] = "invites.txt";
+                        }
                         if (!File.Exists("icgen.exe"))
                         {
                             int len = Resources.icgen.Length;
@@ -311,14 +376,16 @@ namespace ChatServer
                             }
                             else
                             {
-                                switch(generatorProcess.ExitCode)
+                                switch (generatorProcess.ExitCode)
                                 {
                                     case -1:
                                         Write(LogMessageType.Config, "Wrong format for parameters, retrying process"); break;
                                     case 0:
                                         Write(LogMessageType.Config, "Codes generated! Restarting the server..."); break;
                                     default:
-                                        Write("Unknown exit code for icgen.exe", "ERROR", ConsoleColor.DarkRed); break;
+                                        Write(
+                                            "Unknown exit code for icgen.exe <" + generatorProcess.ExitCode + ">",
+                                            "ERROR", ConsoleColor.DarkRed); break;
                                 }
 
                                 LoadInvitesCodes(force);
@@ -344,6 +411,11 @@ namespace ChatServer
                 Server.Password = Settings["passKey"];
                 // todo add more maybe
             }
+            lock (InviteCodes)
+            {
+                if (InviteCodes.Count != 0)
+                    File.WriteAllLines("invites.txt", InviteCodes);
+            }
         }
 
         static System.Timers.Timer VariousJobTimer = new System.Timers.Timer(VARIOUS_JOB_TIMER_TICK);
@@ -351,7 +423,7 @@ namespace ChatServer
 
         public static async void RemoveBlacklist(string p, int delay)
         {
-            await Task.Delay(delay*1000);
+            await Task.Delay(delay * 1000);
             server.Blacklist.Remove(p);
             Write(LogMessageType.UserEvent, "Removed {0} from blacklist", p);
         }

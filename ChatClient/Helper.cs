@@ -46,12 +46,14 @@ namespace ChatClient
 
         public static string XorText(string original, int seed)
         {
+            string s1;
             seed = (((seed <= 0xFF) ? seed : (seed %= 0xFF)) <= 0) ? 0x77 : seed;
             var chars = original.ToCharArray();
             for (int i = 0; i < chars.Length; i++)
                 chars[i] = (char) ((int) chars[i] ^ (seed = (seed + 1 <= 0xFF) ? ++seed : 0));
 
-            return new String(chars);
+            s1 = new string(chars);
+            return s1;
         }
 
         /// <summary>

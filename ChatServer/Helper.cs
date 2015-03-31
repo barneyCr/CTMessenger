@@ -42,11 +42,11 @@ namespace ChatServer
         }
         public static string GenerateRandomString(int length)
         {
-            length = length > 7 ? 7 : length;
+            //length = length > 7 ? 7 : length;
 
             char[] possible = "abcdefghjkmnpqrstuvwxyz".ToCharArray();
             StringBuilder s = new StringBuilder(length);
-            while (--length > 0)
+            while (--length >= 0)
                 s.Append(possible[Randomizer.Next(0, possible.Length)]);
 
             return s.ToString();
@@ -61,12 +61,13 @@ namespace ChatServer
         }
         public static string XorText(string original, int seed)
         {
+            string s1;
             seed = (((seed <= 0xFF) ? seed : (seed %= 0xFF)) <= 0) ? 0x77 : seed;
             var chars = original.ToCharArray();
             for (int i = 0; i < chars.Length; i++)
                 chars[i] = (char)((int)chars[i] ^ (seed = (seed + 1 <= 0xFF) ? ++seed : 0));
-
-            return new String(chars);
+            s1 = new string(chars);
+            return s1;
         }
         public static int Enum(object _enum)
         {

@@ -35,6 +35,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -71,9 +72,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\InviteCodeGenerator.exe" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="bin\Debug\InviteCodeGenerator.exe" />
   </ItemGroup>
   <ItemGroup>
     <None Include="bin\Debug\icgen.exe" />

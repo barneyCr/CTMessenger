@@ -10,11 +10,12 @@ namespace ChatClient
 {
     public class NetworkHelper
     {
-        static byte[] NameRequiredPacket = new byte[] { 2, 8, 18, 32 };
-        static byte[] ServerIsFullPacket = new byte[] { 2, 18, 8, 32 };
-        static byte[] FullAuthRequiredPacket = new byte[] { 2, 32, 8, 18 };
-        static byte[] AccessGrantedPacket = new byte[] { 2, 32, 18, 8 };
-        static byte[] AccessDeniedPacket = new byte[] { 2, 18, 32, 8 };
+        static byte[] NameRequiredPacket =          new byte[] { 2, 8, 18, 32 };
+        static byte[] FullAuthRequiredPacket =      new byte[] { 2, 32, 8, 18 };
+        static byte[] InviteCodeRequiredPacket =    new byte[] { 2, 8, 32, 18 };
+        static byte[] ServerIsFullPacket =          new byte[] { 2, 18, 8, 32 };
+        static byte[] AccessGrantedPacket =         new byte[] { 2, 32, 18, 8 };
+        static byte[] AccessDeniedPacket =          new byte[] { 2, 18, 32, 8 };
 
         public void Send(string msg, params object[] obj)
         {
@@ -113,7 +114,7 @@ namespace ChatClient
             }
             else if (p.Header == "4") // admin message, different from broadcasting because it can be sent to specific people only
             {
-                this.Form.WriteLog("Admin [x]:" + p.ReadString(), Color.Red);
+                this.Form.WriteLog("Admin:" + p.ReadString(), Color.Red);
             }
             else if (p.Header == "12") // client disconnected
             {
@@ -154,7 +155,7 @@ namespace ChatClient
             else if (p.Header == "-1") // kicked !
             {
                 this.ConnectionLost = null; // do not reconnect
-                this.Kicked = false;
+                this.Kicked = true;
                 this.Form.WriteLog("You have been kicked from the server. Retry connecting in a few minutes.");
                 await Task.Delay(5000);
                 Environment.Exit(-1);
@@ -195,10 +196,25 @@ namespace ChatClient
                         string packet = String.Concat(
                             (char)0x55,
                             Helper.XorText(this.Username, 0x55),
-                            "|",
+                            (char)0x7f,
                             Helper.XorText(this.Password, 0x55));
                         toSend = enc.GetBytes(packet);
                         Socket.Send(toSend);
+                    }
+                    else if (buffer.SequenceEqual(InviteCodeRequiredPacket))
+                    {
+                        string packet = String.Concat(
+                            (char)0x65,
+                            this.Username,
+                            (char)0x7f,
+                            this.Password);
+                        toSend = enc.GetBytes(packet);
+                        Socket.Send(toSend);
+                    }
+                    else if (buffer.SequenceEqual(ServerIsFullPacket))
+                    {
+                        this.WriteLog("The server's capacity has been reached. Come back later !");
+                        return false;
                     }
 
                     buffer = new byte[4];
@@ -217,10 +233,6 @@ namespace ChatClient
                         else if (buffer.SequenceEqual(AccessDeniedPacket))
                         {
                             this.WriteLog("Access denied. Wrong password maybe ?");
-                        }
-                        else if (buffer.SequenceEqual(ServerIsFullPacket))
-                        {
-                            this.WriteLog("The server's capacity has been reached. Come back later !");
                         }
                         return false;
                     }

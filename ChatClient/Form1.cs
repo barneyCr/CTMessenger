@@ -24,13 +24,11 @@ namespace ChatClient
 
         async void button1_Click(object sender, EventArgs e)
         {
-            string[] data = ipBox.Text.Split(':');
-
             try
             {
-                WriteLog("Trying to connect to {0} on port {1}", data[0], data[1]);
+                WriteLog("Trying to connect to {0} on port {1}", ipBox.Text, portBox.Text);
 
-                helper = new NetworkHelper(data[0], int.Parse(data[1]), unameBox.Text, passwordBox.Text, this.WriteLog);
+                helper = new NetworkHelper(ipBox.Text, int.Parse(portBox.Text), unameBox.Text, passwordBox.Text, this.WriteLog);
                 if (helper.Connect())
                 {
                     WriteLog("Connection successful !");
@@ -47,10 +45,10 @@ namespace ChatClient
             {
                 WriteLog("Error on parsing port number or IP Address");
             }
-            catch (IndexOutOfRangeException)
-            {
-                WriteLog("You must specify a port number! <IP>:<port>");
-            }
+            //catch (IndexOutOfRangeException)
+            //{
+            //    WriteLog("You must specify a port number! <IP>:<port>");
+            //}
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -75,9 +73,5 @@ namespace ChatClient
             }
         }
 
-        private void unameBox_TextChanged(object sender, EventArgs e)
-        {
-
-        }
     }
 }

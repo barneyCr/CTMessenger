@@ -56,9 +56,14 @@ namespace ChatServer
             {
                 try
                 {
-                    if (Connections.Count + 1 > maxConnections) 
-                        continue;
                     Socket socket = _listener.AcceptSocket();
+					if (Connections.Count + 1 > maxConnections) 
+					{
+						socket.Send(ServerIsFullPacket);
+						socket.Close();
+						Thread.Sleep(500);
+						continue;
+					}
                     if (this.Blacklist.Contains(socket.RemoteEndPoint.ToString().Split(':')[0]))
                     {
                         Program.Write(LogMessageType.Auth, "Rejected blacklisted IP: {0}", socket.RemoteEndPoint.ToString());
@@ -66,6 +71,7 @@ namespace ChatServer
                         socket.Close();
                         continue;
                     }
+					
                     var watch = Stopwatch.StartNew();
                     Program.Write(LogMessageType.Network, "Incoming connection");
                     ConnectionFlags flag = ConnectionFlags.None;
@@ -73,7 +79,7 @@ namespace ChatServer
                     Client client = OnClientConnected(socket, ref flag);
                     if (client != null && flag == ConnectionFlags.OK)
                         OnSuccessfulClientConnect(client);
-                    else if ((flag == ConnectionFlags.BadPassword && AuthMethod == ChatServer.AuthMethod.Full) || flag == ConnectionFlags.BadFirstPacket)
+                    else if ((flag == ConnectionFlags.BadPassword && AuthMethod == ChatServer.AuthMethod.Full) || flag == ConnectionFlags.BadFirstPacket || flag == ConnectionFlags.BadInviteCode)
                     {
                         try
                         {
@@ -346,10 +352,11 @@ namespace ChatServer
         static byte[] ServerSocketAdminRejected = new byte[] { 49, 64, 81, 100 };
         static byte[] ServerSocketAdminAccepted = new byte[] { 64, 81, 100, 121 };
         static byte[] NameRequiredPacket = new byte[] { 2, 8, 18, 32 };
-        static byte[] ServerIsFullPacket = new byte[] { 2, 18, 8, 32 };
         static byte[] FullAuthRequiredPacket = new byte[] { 2, 32, 8, 18 };
+		static byte[] InviteCodeRequiredPacket = new byte[] { 2, 8, 32, 18 };
         static byte[] AccessGrantedPacket = new byte[] { 2, 32, 18, 8 };
         static byte[] AccessDeniedPacket = new byte[] { 2, 18, 32, 8 };
+        static byte[] ServerIsFullPacket = new byte[] { 2, 18, 8, 32 };
         static byte[] BlacklistedPacket = new byte[] { 33, 6, 1 };
         static byte[] PingPacket = new byte[] { 4, 36 };
 
@@ -364,11 +371,13 @@ namespace ChatServer
                     newGuy.Send(FullAuthRequiredPacket);
                     break;
                 case AuthMethod.InviteCode:
+					newGuy.Send(InviteCodeRequiredPacket);
+					break;
                 default:
                     throw new NotImplementedException();
             }
 
-            byte[] buffer = new byte[128];
+            byte[] buffer = new byte[768];
             int bytesRead = 0;
 
             if (!Receive(newGuy, buffer, ref bytesRead))
@@ -402,11 +411,13 @@ namespace ChatServer
                 else if (buffer[0] == 0x65 && AuthMethod == ChatServer.AuthMethod.InviteCode)
                 {
                     string[] data = GetLoginPacketParams(buffer, bytesRead);
+                    //data[1] = Helper.XorText(data[1], data[1].Length);
                     lock (Program.InviteCodes)
                     {
                         if (Program.InviteCodes.Contains(data[1]))
                         {
                             Program.InviteCodes.Remove(data[1]); // remove the invite code from the list
+                            Program.Write(LogMessageType.Auth, "{0} used invite code {1}", data[0], data[1]);
                             flag = ConnectionFlags.OK;
                             return new Client(data[0], newGuy);
                         }
@@ -429,7 +440,9 @@ namespace ChatServer
 
         private static string[] GetLoginPacketParams(byte[] buffer, int bytesRead)
         {
-            string[] data = enc.GetString(buffer, 1, bytesRead - 1).Split('|').Select(s => Helper.XorText(s, buffer[0])).ToArray();
+            string[] data = enc.GetString(buffer, 1, bytesRead - 1).Split((char)0x7f)
+                //.Select(s => Helper.XorText(s, buffer[0]))
+                .ToArray();
             return data;
         }
 
