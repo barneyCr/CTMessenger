@@ -104,7 +104,15 @@ namespace InviteCodeGenerator
 
                         if (chunkIndex + 1 > TOTAL_CHAR_COUNT()) // test if we are at the end of this code
                         {
-                            Console.WriteLine(code);
+                            if (HIRED_PROC && comb >= 30000)
+                            {
+                                if (i%5000==0)
+                                Console.WriteLine("Generated {0} codes... <{1}%>", i, ((double)i)/((double)comb)*100);
+                            }
+                            else
+                            {
+                                Console.WriteLine(code);
+                            }
                             codesBuffer[i] = code;
                             break;
                         }
