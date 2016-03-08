@@ -17,7 +17,7 @@ namespace ChatServer
         public static List<string> InviteCodes = new List<string>(500);
 
         const ConsoleColor DefaultColor = ConsoleColor.DarkGray;
-        const int VARIOUS_JOB_TIMER_TICK = 1000;
+        const int VARIOUS_JOB_TIMER_TICK = 7500;
         static Server server;
         static bool WriteInLogFile;
         static bool firstEditOfSettings = true;
@@ -105,7 +105,7 @@ namespace ChatServer
                 //
 
                 string line = "";
-                while ((line = Console.ReadLine()) != "close server now")
+                while ((line = Console.ReadLine()) != "csn")
                 {
                     try
                     {
@@ -276,6 +276,10 @@ namespace ChatServer
                                     Console.WriteLine(" -> copied");
                                 }
                             }
+                            else if (line == "openf")
+                            {
+                                Process.Start("explorer", Environment.CurrentDirectory);
+                            }
                         }
                     }
 
@@ -333,7 +337,7 @@ namespace ChatServer
                         {
                             Program.InviteCodes.Add(line);
                         }
-                    }
+                    } 
                 }
                 catch (FileNotFoundException)
                 {
@@ -381,7 +385,7 @@ namespace ChatServer
                                     case -1:
                                         Write(LogMessageType.Config, "Wrong format for parameters, retrying process"); break;
                                     case 0:
-                                        Write(LogMessageType.Config, "Codes generated! Restarting the server..."); break;
+                                        Write(LogMessageType.Config, "{0} codes generated! Restarting the server...", args[0]); break;
                                     default:
                                         Write(
                                             "Unknown exit code for icgen.exe <" + generatorProcess.ExitCode + ">",

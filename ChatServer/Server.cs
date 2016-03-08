@@ -223,6 +223,10 @@ namespace ChatServer
             {
                 HandleReportPacket(p, sender);
             }
+            else if (p.Header == HeaderTypes.REQUEST_SEND_FILE)
+            {
+
+            }
         }
 
         private void HandleReportPacket(Packet p, Client sender)
