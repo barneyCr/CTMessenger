@@ -38,5 +38,6 @@
         public const int CHANGE_USERNAME_DENIED = -41;
         public const int CHANGE_USERNAME_ANNOUNCE = 42;
         public const int REPORT_USER = 43;
+        public const int REQUEST_SEND_FILE = 100;
     }
 }
