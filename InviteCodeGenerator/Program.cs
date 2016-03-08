@@ -153,6 +153,7 @@ namespace InviteCodeGenerator
             }
             catch
             {
+                // TODO add better handling
                 return -2;
             }
         }

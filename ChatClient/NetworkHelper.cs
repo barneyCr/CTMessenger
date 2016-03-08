@@ -63,7 +63,7 @@ namespace ChatClient
                 string[] packetArray = enc.GetString(buff, 0, bytes).Split('\n');
 
                 foreach (var pstr in packetArray)
-                {
+                { 
                     using (packet = new Packet(pstr))
                     {
                         HandlePacket(packet);

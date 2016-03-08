@@ -1,0 +1,3 @@
+- Removed encryption through XOR on auth because of some bugs [todo]
+~ Changed the GUI a little
++ Added and improved some console commands on the server
