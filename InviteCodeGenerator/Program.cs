@@ -83,7 +83,7 @@ namespace InviteCodeGenerator
                                 else
                                 {
                                     code[chunkIndex] = LetterGenerator();
-                                    lettersUsed++;
+                                    lettersUsed++; 
                                 }
                             }
                             else

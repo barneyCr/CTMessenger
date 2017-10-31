@@ -110,7 +110,5 @@ namespace ChatServer
 
             return Tuple.Create(item1, item2, item3);
         }
-
-        
     }
 }

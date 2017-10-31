@@ -14,3 +14,5 @@ svWelcomeMsg=Welcome_msg
 autoban=true
 reportsBevoidTime=20
 reportMajorityPercent=50
+
+rewriteSettings=false

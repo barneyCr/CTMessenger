@@ -12,19 +12,26 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Mac|Any CPU = Mac|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{417916D6-2E76-4CFB-94BE-76DC2E2CE39E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{417916D6-2E76-4CFB-94BE-76DC2E2CE39E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{417916D6-2E76-4CFB-94BE-76DC2E2CE39E}.Mac|Any CPU.ActiveCfg = Mac|Any CPU
+		{417916D6-2E76-4CFB-94BE-76DC2E2CE39E}.Mac|Any CPU.Build.0 = Mac|Any CPU
 		{417916D6-2E76-4CFB-94BE-76DC2E2CE39E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{417916D6-2E76-4CFB-94BE-76DC2E2CE39E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CB92A5F2-9B7B-45F7-9521-BC4DDAC9BFA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CB92A5F2-9B7B-45F7-9521-BC4DDAC9BFA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CB92A5F2-9B7B-45F7-9521-BC4DDAC9BFA4}.Mac|Any CPU.ActiveCfg = Mac|Any CPU
+		{CB92A5F2-9B7B-45F7-9521-BC4DDAC9BFA4}.Mac|Any CPU.Build.0 = Mac|Any CPU
 		{CB92A5F2-9B7B-45F7-9521-BC4DDAC9BFA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CB92A5F2-9B7B-45F7-9521-BC4DDAC9BFA4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{ED075C97-6FF4-4D66-84E3-FEC5A8D9610C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{ED075C97-6FF4-4D66-84E3-FEC5A8D9610C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED075C97-6FF4-4D66-84E3-FEC5A8D9610C}.Mac|Any CPU.ActiveCfg = Mac|Any CPU
+		{ED075C97-6FF4-4D66-84E3-FEC5A8D9610C}.Mac|Any CPU.Build.0 = Mac|Any CPU
 		{ED075C97-6FF4-4D66-84E3-FEC5A8D9610C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED075C97-6FF4-4D66-84E3-FEC5A8D9610C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection

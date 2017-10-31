@@ -17,7 +17,8 @@ namespace ChatServer
         readonly TcpListener _listener;
         readonly IPAddress ip = IPAddress.Any;
         readonly int port, maxConnections;
-        readonly bool logPackets, acceptServers;
+        public bool LogPackets;
+        readonly bool acceptServers;
         public readonly Thread listenThread;
         public static readonly ASCIIEncoding enc = new ASCIIEncoding();
 
@@ -33,7 +34,7 @@ namespace ChatServer
             this._listener = new TcpListener(ip, port);
             this.Connections = new Dictionary<int, Client>(maxConnections);
             this.listenThread = new Thread(StartListening);
-            this.logPackets = Program.Settings["logPackets"];
+            this.LogPackets = Program.Settings["logPackets"];
             this.acceptServers = Program.Settings["acceptServerSockets"];
 
             this.Blacklist = new List<string>();
@@ -57,7 +58,7 @@ namespace ChatServer
                 try
                 {
                     Socket socket = _listener.AcceptSocket();
-					if (Connections.Count + 1 > maxConnections) 
+					if (Connections.Count + 1 > maxConnections)
 					{
 						socket.Send(ServerIsFullPacket);
 						socket.Close();
@@ -71,7 +72,7 @@ namespace ChatServer
                         socket.Close();
                         continue;
                     }
-					
+
                     var watch = Stopwatch.StartNew();
                     Program.Write(LogMessageType.Network, "Incoming connection");
                     ConnectionFlags flag = ConnectionFlags.None;
@@ -179,7 +180,7 @@ namespace ChatServer
         {
             p.Seek(+1);
             var sender = p.Sender;
-            if (logPackets && p.Header != HeaderTypes.POST_MESSAGE)
+            if (LogPackets && p.Header != HeaderTypes.POST_MESSAGE)
                 Program.Write("Received packet of type " + GetHeaderType(p.Header) + ", from " + sender.Username + "[" + sender.UserID + "]", "PacketLogs", ConsoleColor.Blue);
 
             if (p.Header == HeaderTypes.POST_MESSAGE) // msg
@@ -254,11 +255,13 @@ namespace ChatServer
                         reportedClient.Reports.Add(sender.UserID, DateTime.Now);
                     }
                     Program.Write(
-                            LogMessageType.ReportFromUser,
+                            LogMessageType.ReportFromUser,	
                             "User {0} was reported by {1} for the following reason: \n\t\"{2}\"",
                             reportedClient.Username, sender.Username, reason);
                     AdminMessage("Report successful, thank you", new[] { sender.UserID });
 
+                    // if more than X percent of clients have reported user A
+                    // in the last Y minutes, he will receive a temporary ban of Y / 2 minutes
                     if (Program.Settings["autoban"] == true)
                     {
                         int reportsBevoidTime = Program.Settings["reportsBevoidTime"];
@@ -301,9 +304,14 @@ namespace ChatServer
             return GetHeaderType(header.ToString());
         }
 
+        /// <summary>
+        /// Used together with HeaderType enum (for parsing)
+        /// </summary>
+        /// <param name="header"></param>
+        /// <returns></returns>
         public static String GetHeaderType(string header)
         {
-            
+
             switch (header)
             {
                 case "32":
@@ -342,6 +350,10 @@ namespace ChatServer
                     return "CHANGE_USERNAME_DENIED";
                 case "42":
                     return "CHANGE_USERNAME_ANNOUNCE";
+                case "43":
+                    return "REPORT_USER";
+                case "100":
+                    return "REQUEST_SEND_FILE";
                 default:
                     return "Unknown";
             }
@@ -420,8 +432,13 @@ namespace ChatServer
                     {
                         if (Program.InviteCodes.Contains(data[1]))
                         {
-                            Program.InviteCodes.Remove(data[1]); // remove the invite code from the list
                             Program.Write(LogMessageType.Auth, "{0} used invite code {1}", data[0], data[1]);
+
+                            Program.InviteCodes.Remove(data[1]); // remove the invite code from the list
+                            if (Program.InviteCodes.Count == 0)
+                            {
+                                Program.Write(LogMessageType.Warning, "All invite codes have been used.");
+                            }
                             flag = ConnectionFlags.OK;
                             return new Client(data[0], newGuy);
                         }

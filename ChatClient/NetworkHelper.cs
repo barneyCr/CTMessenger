@@ -53,7 +53,8 @@ namespace ChatClient
 
         private void NetworkAction()
         {
-            byte[] buff = new byte[512];
+            // changed from 512 to 1024 (8th march 2016)
+            byte[] buff = new byte[1024];
             int bytes = 0;
             while (Socket.Connected)
             {
@@ -244,6 +245,9 @@ namespace ChatClient
             }
         }
 
+        // todo this throws an exception when authmethod = invitecode
+        // when the client tries to reconnect and finally finds the server,
+        // it throws InvalidOperationException
         async void NetworkHelper_ConnectionLost()
         {
             await Task.Run(async () => {

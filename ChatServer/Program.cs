@@ -1,4 +1,5 @@
 ﻿using ChatServer.Properties;
+using Microsoft.CSharp.RuntimeBinder;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,6 +22,10 @@ namespace ChatServer
         static Server server;
         static bool WriteInLogFile;
         static bool firstEditOfSettings = true;
+
+        static DateTime TimeServerStarted = DateTime.Now;
+
+        static string LastBroadcastedMsg = "";
 
         static StreamWriter writer = new StreamWriter("logs.txt", true);
 
@@ -72,6 +77,18 @@ namespace ChatServer
                     Write(msg, "REPORT", ConsoleColor.DarkRed);
                     break;
 
+                case LogMessageType.Error:
+                    Write(msg, head, ConsoleColor.Red);
+                    break;
+
+                case LogMessageType.Warning:
+                    Write(msg, head, ConsoleColor.DarkYellow);
+                    break;
+
+                case LogMessageType.OK:
+                    Write("OK", "System");
+                    break;
+
                 default:
                     Write(msg);
                     break;
@@ -97,7 +114,7 @@ namespace ChatServer
                 server = new Server(Settings["serverPort"], Settings["maxClients"], Parse<AuthMethod>(Settings["authMethod"]), Settings["passKey"]);
                 server.listenThread.Start();
                 watch.Stop();
-                Program.Write("Loaded server in " + watch.Elapsed.TotalSeconds + " seconds", "Trace");
+                Program.Write("Loaded server in " + watch.Elapsed.TotalSeconds.ToString("F2") + " seconds", "Trace");
 
                 VariousJobTimer.Elapsed += VariousJobTimer_Elapsed;
                 VariousJobTimer.Start();
@@ -150,7 +167,25 @@ namespace ChatServer
                             if (line[1] == ' ')
                             {
                                 if (line[0] == 'b')
-                                    server.Broadcast(line.Substring(2));
+                                {
+                                    string m = line.Substring(2);
+                                    // buffer max
+                                    if (m.Length < 1000)
+                                    {
+                                        if (line.EndsWith("-last") && !String.IsNullOrWhiteSpace(LastBroadcastedMsg))
+                                            server.Broadcast(LastBroadcastedMsg);
+                                        else
+                                        {
+                                            server.Broadcast(m);
+                                            LastBroadcastedMsg = m;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Write(LogMessageType.Error, "Message is too long! Can't be longer than 1000 characters. Message copied to clipboard.");
+                                        System.Windows.Forms.Clipboard.SetText(m);
+                                    }
+                                }
                                 else if (line[0] == 'a')
                                 {
                                     int[] uids = new String(line.Substring(2).TakeWhile(c => c != ' ' && c != '^').ToArray()).Split(',').Select(s => int.Parse(s)).ToArray();
@@ -193,7 +228,7 @@ namespace ChatServer
                                         }
                                         else
                                         {
-                                            Console.WriteLine("No such key... add in session memory?");
+                                            Console.WriteLine("No such key... add in session memory? 1 = yes");
                                             if (Console.ReadLine() == "1")
                                             {
                                                 lock (Settings)
@@ -244,8 +279,9 @@ namespace ChatServer
                             else if (line == "add ic")
                             {
                                 Console.Write("Expecting invite code: ");
-                                string code;
-                                InviteCodes.Add(code = Console.ReadLine());
+                                string code = Console.ReadLine();
+                                lock (InviteCodes)
+                                    InviteCodes.Add(code);
                                 Write(LogMessageType.Config, "Added invite code " + code);
                             }
                             else if (line.StartsWith("pop ic"))
@@ -276,9 +312,49 @@ namespace ChatServer
                                     Console.WriteLine(" -> copied");
                                 }
                             }
+                            else if (line.StartsWith("del ic"))
+                            {
+                                if (line == "del ic -all")
+                                {
+                                    // delete file
+                                    lock (InviteCodes)
+                                    {
+                                        InviteCodes.Clear();
+                                        File.Delete("invites.txt"); // no cross threading thanks to locking invitecodes everywhere
+                                        Program.Write(LogMessageType.OK, "");
+                                    }
+                                }
+                                else
+                                {
+                                    line = line.Substring(7);
+                                    lock (InviteCodes)
+                                    {
+                                        InviteCodes.Remove(line);
+                                        Program.Write(LogMessageType.OK, "");
+                                    }
+                                }
+                            }
                             else if (line == "openf")
                             {
                                 Process.Start("explorer", Environment.CurrentDirectory);
+                            }
+                            else if (line == "help")
+                            {
+                                Console.WriteLine(ChatServer.Properties.Resources.ConsoleCommandGuide);
+                            }
+                            else if (line == "time")
+                            {
+                                DateTime now = DateTime.Now;
+                                TimeSpan running = (DateTime.Now - Program.TimeServerStarted);
+                                string runningStr = (running.TotalMinutes < 75) ? running.TotalMinutes.ToString("F1") + " min" : running.TotalHours.ToString("F2") + " h";
+                                
+                                Program.Write(LogMessageType.ServerMessage,
+                                    "Time is {0}, process running for {1} ",
+                                    now.ToLongTimeString(), runningStr);
+                            }
+                            else if (line.StartsWith("vote"))
+                            {
+                                
                             }
                         }
                     }
@@ -307,6 +383,7 @@ namespace ChatServer
             }
             finally
             {
+
                 server = null;
                 writer.Dispose();
                 VariousJobTimer.Dispose();
@@ -325,7 +402,7 @@ namespace ChatServer
 
         private static void LoadInvitesCodes(bool force)
         {
-            InviteCodes = new List<string>(Settings["maxClients"]);
+            Program.InviteCodes = new List<string>(Settings["maxClients"]);
             if (force == true || Parse<AuthMethod>(Settings["authMethod"]) == AuthMethod.InviteCode)
             {
                 try
@@ -342,7 +419,7 @@ namespace ChatServer
                 catch (FileNotFoundException)
                 {
                     Write(LogMessageType.Config, "Warning: no invite code file (create invites.txt)");
-                    Write(LogMessageType.Config, "Create new file? <yes/no>");
+                    Write(LogMessageType.Config, "Create new file? <yes/no>\tDefault: <def>");
                     string ans = Console.ReadLine().ToLower();
                     if (ans == "yes" || ans == "def")
                     {
@@ -400,8 +477,10 @@ namespace ChatServer
             }
         }
 
+        static int timerTickerCounter = 0;
         static void VariousJobTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
+            timerTickerCounter++;
             lock (Settings)
             {
                 WriteInLogFile = Settings["writeInFile"];
@@ -413,18 +492,56 @@ namespace ChatServer
                 }
                 Server.AuthMethod = Parse<AuthMethod>(Settings["authMethod"]);
                 Server.Password = Settings["passKey"];
+                try
+                {
+                    server.LogPackets = (Settings["logPackets"]);
+                }
+                catch (RuntimeBinderException)
+                {
+                    Settings["logPackets"] = true;
+                }
+                catch (NullReferenceException) 
+                  { throw;
+                // ce dracu
+                    // server ii null
+                }
                 // todo add more maybe
             }
-            lock (InviteCodes)
+            if (Server.AuthMethod == AuthMethod.InviteCode)
             {
-                if (InviteCodes.Count != 0)
-                    File.WriteAllLines("invites.txt", InviteCodes);
+                lock (InviteCodes)
+                {
+                    if (InviteCodes.Count != 0)
+                        File.WriteAllLines("invites.txt", InviteCodes);
+                    else
+                        File.Delete("invites.txt");
+                }
+            }
+            if (timerTickerCounter % 4 == 0)
+            {
+                if (Settings["rewriteSettings"] == true)
+                {
+                    lock (Settings)
+                    {
+                        using (var writer = new StreamWriter("server.ini"))
+                        {
+                            foreach (var pair in Settings)
+                            {
+                                writer.WriteLine("{0}={1}", pair.Key, pair.Value.ToString());
+                            }
+                        }
+                    }
+                }
             }
         }
 
         static System.Timers.Timer VariousJobTimer = new System.Timers.Timer(VARIOUS_JOB_TIMER_TICK);
 
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="p"></param>
+        /// <param name="delay">in seconds</param>
         public static async void RemoveBlacklist(string p, int delay)
         {
             await Task.Delay(delay * 1000);
@@ -439,8 +556,10 @@ namespace ChatServer
             ConsoleColor bckCol = Console.BackgroundColor = Parse<ConsoleColor>(Settings["consoleBackColor"]);
             Console.ForegroundColor = bckCol == ConsoleColor.Black ? ConsoleColor.Cyan : ConsoleColor.DarkCyan;
 
-            Console.SetWindowSize(105, 25);
+#if !mac
+            Console.SetWindowSize(105, 35);
             Console.SetBufferSize(105, 1500);
+#endif
 
             Console.Clear();
             Program.Write(LogMessageType.Config, "Settings loaded");

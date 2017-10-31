@@ -15,7 +15,11 @@
         Auth,
         UserEvent,
         Packet,
-        ReportFromUser
+        ReportFromUser,
+        Error,
+        Warning,
+        OK,
+        ServerMessage
     }
 
     static class HeaderTypes

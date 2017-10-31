@@ -12,9 +12,10 @@ namespace ChatClient
         readonly NetworkHelper helper;
         readonly Action<String> SystemMessage;
 
-        public void WriteLog(string str, Color col)
+        public void WriteLog(string str, Color col, bool notification = true)
         {
-            this.Invoke(new MethodInvoker(() => {
+            this.Invoke(new MethodInvoker(() =>
+            {
                 int pos = this.logBox.TextLength;
                 this.logBox.AppendText(str + "\n");
 
@@ -39,6 +40,9 @@ namespace ChatClient
         {
             Player sender = Player.All[senderID];
             this.WriteLog(String.Format("{0} whispered to you: {1}", sender.Username, message), settings.ReceiveWhisper);
+            notifyIcon1.ShowBalloonTip(7500, "Whisper!",
+                   string.Format("{0}: {1}", sender.Username, message), ToolTipIcon.Info);
+            
         }
         public void SentWhisper(int targetID, string message)
         {
@@ -51,6 +55,11 @@ namespace ChatClient
             this.WriteLog(
                 string.Format("{0} {1} [{2}]: {3}", DateTime.Now.ToShortTimeString(), senderName, id, msg),
                 senderName != this.helper.Username ? settings.UserPostMessage : settings.MePostMessage);
+            if (id != this.helper.UID)
+            {
+                notifyIcon1.ShowBalloonTip(7500, "Received message",
+                    string.Format("{0}: {1}", senderName, msg), ToolTipIcon.Info);
+            }
         }
 
         MainForm()
@@ -130,7 +139,7 @@ namespace ChatClient
                     case 'o':
                         this.SystemMessage("\nUsers online:");
                         foreach (var user in Player.All.Values)
-                            this.WriteLog(String.Format("{0} -> UserID: {1}", user.UserID, user.Username), Color.RoyalBlue);
+                            this.WriteLog(String.Format("{0} -> UserID: {1}", user.Username, user.UserID), Color.RoyalBlue);
                         this.logBox.AppendText("\n\n");
                         break;
 

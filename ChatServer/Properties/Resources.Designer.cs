@@ -61,6 +61,29 @@ namespace ChatServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to 
+        ///
+        ///-------
+        ///
+        ///[argument] = necessary argument
+        ///&lt;argument&gt; = optional argument
+        ///
+        ///&quot;csn&quot; = close server now
+        ///&quot;clients&quot; = returns number of connected clients
+        ///&quot;settings &lt;name&gt;&quot; = returns all settings / &lt;name&gt; = specific setting
+        ///&quot;cls&quot; / &quot;clear &quot; = clears console
+        ///&quot;b [msg] &lt;-last?&gt;&quot; = broadcast message OR resend last broadcasted message
+        ///&quot;a [id1,id2,...]^[msg]&quot; = send msg to all id&apos;s in list
+        ///&quot;k [id] &lt;time&gt;&quot; = kick user with given ID for &lt;time&gt; seconds
+        ///&quot;e [prop]=[newValue]&quot; = change value of property to newVa [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string ConsoleCommandGuide {
+            get {
+                return ResourceManager.GetString("ConsoleCommandGuide", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to writeInFile=true 
         ///serverPort=15432
         ///maxClients=10
